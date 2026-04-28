@@ -293,7 +293,7 @@
     <div class="submit-area">
       <div class="submit-status" id="submitStatus"></div>
       <div class="form-hint">Alle Felder müssen ausgefüllt sein.</div>
-      <button class="btn-submit" id="submitBtn" onclick="submitQuiz()">Absenden ✓</button>
+      <button class="btn-submit" id="submitBtn">Absenden ✓</button>
     </div>
   </form>
 </div>
@@ -306,7 +306,9 @@
   <a class="btn-back" href="index.html">← Zur Hauptseite</a>
 </div>
 
-<script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
   /* ════════════════════════════════════════════
      ⚙️  KONFIGURATION — hier anpassen!
   ════════════════════════════════════════════ */
@@ -338,6 +340,8 @@
       }
     ]
   };
+
+  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
   /* ════ Fragen rendern ════ */
   const form = document.getElementById("quizForm");
@@ -405,24 +409,11 @@
     status.textContent = "";
 
     try {
-      const res = await fetch(
-        `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": CONFIG.SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
-            "Prefer": "return=minimal"
-          },
-          body: JSON.stringify(answers)
-        }
-      );
+      const { error } = await supabase
+        .from(CONFIG.TABLE)
+        .insert([answers]);
 
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Supabase Fehler ${res.status}: ${err}`);
-      }
+      if (error) throw new Error(error.message);
 
       // Erfolg
       document.getElementById("quiz-wrapper").style.display = "none";
@@ -436,6 +427,8 @@
       btn.textContent = "Absenden ✓";
     }
   }
+
+  document.getElementById("submitBtn").addEventListener("click", submitQuiz);
 </script>
 
 </body>
