@@ -1,12 +1,479 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kodierung, Hashes, Verschlüsselungen</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Umfrage — Ergebnisse</title>
+
+  <!-- QR Code Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #161616;
+      --border:    #2a2a2a;
+      --accent:    #e8ff47;
+      --accent2:   #ff6b35;
+      --text:      #f0f0f0;
+      --muted:     #666;
+      --bar1:      #e8ff47;
+      --bar2:      #ff6b35;
+      --bar3:      #47c8ff;
+      --bar4:      #c847ff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .tag {
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ── MAIN GRID ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 700px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── QR CARD ── */
+    .qr-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2rem;
+      text-align: center;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .qr-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+    }
+
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.2rem;
+    }
+
+    #qrcode canvas, #qrcode img {
+      border-radius: 4px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .qr-url {
+      font-size: 0.65rem;
+      color: var(--muted);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    /* ── RESULTS PANEL ── */
+    .results-panel {}
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .panel-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-load {
+      background: var(--accent);
+      color: #0d0d0d;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.7rem 1.4rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-load:hover { background: #d4ea30; transform: translateY(-1px); }
+    .btn-load:active { transform: translateY(0); }
+    .btn-load:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #0d0d0d;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── STATUS ── */
+    .status {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      min-height: 1.2em;
+    }
+    .status.error { color: var(--accent2); }
+    .status.success { color: var(--accent); }
+
+    /* ── CHARTS ── */
+    .charts-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .chart-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.8rem;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+    .chart-block.visible { opacity: 1; transform: translateY(0); }
+
+    .chart-question {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chart-question .q-num {
+      color: var(--accent);
+      margin-right: 0.4rem;
+    }
+
+    .chart-total {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    /* BAR CHART */
+    .bars { display: flex; flex-direction: column; gap: 0.9rem; }
+
+    .bar-row { display: flex; flex-direction: column; gap: 0.3rem; }
+
+    .bar-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+    }
+
+    .bar-label { color: var(--text); }
+    .bar-count { color: var(--muted); }
+
+    .bar-track {
+      width: 100%;
+      height: 28px;
+      background: #222;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .bar-fill::after {
+      content: attr(data-pct);
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.65rem;
+      color: rgba(0,0,0,0.7);
+      font-weight: 500;
+    }
+
+    /* empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+    }
+
+    .empty-state .arrow {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <h1>Kodierung, Hashes, Verschlüsselungen</h1>
+
+<header>
+  <div>
+    <div class="logo">Hashes und <span>Kodierungen</span></div>
+    <div class="tag">Live-Ergebnisse · Hauptseite</div>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <!-- QR CODE -->
+  <aside class="qr-card">
+    <div class="qr-label">▸ Quiz starten</div>
+    <div id="qrcode"></div>
+    <div class="qr-url" id="quiz-url-display"></div>
+  </aside>
+
+  <!-- RESULTS -->
+  <section class="results-panel">
+    <div class="panel-header">
+      <div class="panel-title">Ergebnisse</div>
+      <button class="btn-load" id="loadBtn" onclick="loadResults()">
+        <span id="btn-icon">↓</span>
+        <span id="btn-text">Ergebnisse laden</span>
+      </button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div id="charts-area">
+      <div class="empty-state">
+        <span class="arrow">↑</span>
+        Klicke auf „Ergebnisse laden" um die aktuellen Umfragedaten anzuzeigen.
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  /* ════════════════════════════════════════════
+     ⚙️  KONFIGURATION — hier anpassen!
+  ════════════════════════════════════════════ */
+  const CONFIG = {
+    // URL deiner Quiz-Unterseite (GitHub Pages URL)
+    QUIZ_URL: "https://philemon-netizen.github.io/hashes/quiz.html",
+
+    // Supabase
+    SUPABASE_URL: "https://kqvkhfbstrurtalngzzj.supabase.co",
+    SUPABASE_ANON_KEY: "sb_publishable_vkWxwaaxpb47CalDchStKg_3GsJJSek",
+
+    // Tabellenname in Supabase
+    TABLE: "umfrage_antworten",
+
+    // Fragen & Antwortoptionen (muss mit quiz.html übereinstimmen!)
+    QUESTIONS: [
+      {
+        id: "q1",
+        text: "Wie bist du auf uns aufmerksam geworden?",
+        options: ["Social Media", "Freunde / Familie", "Werbung", "Sonstiges"]
+      },
+      {
+        id: "q2",
+        text: "Wie oft nutzt du unser Angebot?",
+        options: ["Täglich", "Wöchentlich", "Monatlich", "Seltener"]
+      },
+      {
+        id: "q3",
+        text: "Wie zufrieden bist du insgesamt?",
+        options: ["Sehr zufrieden", "Zufrieden", "Neutral", "Unzufrieden"]
+      },
+      {
+        id: "q4",
+        text: "Würdest du uns weiterempfehlen?",
+        options: ["Auf jeden Fall", "Wahrscheinlich", "Eher nicht", "Nein"]
+      }
+    ]
+  };
+
+  /* ════ QR Code generieren ════ */
+  const qrEl = document.getElementById("qrcode");
+  document.getElementById("quiz-url-display").textContent = CONFIG.QUIZ_URL;
+
+  new QRCode(qrEl, {
+    text: CONFIG.QUIZ_URL,
+    width: 200,
+    height: 200,
+    colorDark: "#0d0d0d",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  /* ════ Ergebnisse laden ════ */
+  const BAR_COLORS = ["var(--bar1)", "var(--bar2)", "var(--bar3)", "var(--bar4)"];
+
+  async function loadResults() {
+    const btn = document.getElementById("loadBtn");
+    const icon = document.getElementById("btn-icon");
+    const text = document.getElementById("btn-text");
+    const status = document.getElementById("status");
+
+    btn.disabled = true;
+    icon.innerHTML = '<div class="spinner"></div>';
+    text.textContent = "Lade Daten…";
+    status.className = "status";
+    status.textContent = "";
+
+    try {
+      const res = await fetch(
+        `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*`,
+        {
+          headers: {
+            "apikey": CONFIG.SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+
+      if (!res.ok) throw new Error(`Serverfehler: ${res.status}`);
+      const rows = await res.json();
+
+      status.className = "status success";
+      status.textContent = `✓ ${rows.length} Antwort${rows.length !== 1 ? "en" : ""} geladen`;
+
+      renderCharts(rows);
+    } catch (err) {
+      status.className = "status error";
+      status.textContent = `✗ Fehler: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+      icon.textContent = "↓";
+      text.textContent = "Aktualisieren";
+    }
+  }
+
+  /* ════ Diagramme rendern ════ */
+  function renderCharts(rows) {
+    const area = document.getElementById("charts-area");
+    area.innerHTML = "";
+
+    if (rows.length === 0) {
+      area.innerHTML = `<div class="empty-state"><span class="arrow">📭</span>Noch keine Antworten vorhanden.</div>`;
+      return;
+    }
+
+    CONFIG.QUESTIONS.forEach((q, qi) => {
+      // Antworten zählen
+      const counts = {};
+      q.options.forEach(o => counts[o] = 0);
+      rows.forEach(row => {
+        const val = row[q.id];
+        if (val && counts[val] !== undefined) counts[val]++;
+      });
+
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+      // Block aufbauen
+      const block = document.createElement("div");
+      block.className = "chart-block";
+      block.style.transitionDelay = `${qi * 0.08}s`;
+
+      let barsHTML = "";
+      q.options.forEach((opt, oi) => {
+        const cnt = counts[opt] || 0;
+        const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+        const color = BAR_COLORS[oi % BAR_COLORS.length];
+        barsHTML += `
+          <div class="bar-row">
+            <div class="bar-meta">
+              <span class="bar-label">${opt}</span>
+              <span class="bar-count">${cnt} Stimme${cnt !== 1 ? "n" : ""}</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" 
+                   data-pct="${pct}%"
+                   data-target="${pct}"
+                   style="background:${color}; width:0%">
+              </div>
+            </div>
+          </div>`;
+      });
+
+      block.innerHTML = `
+        <div class="chart-question">
+          <span class="q-num">F${qi + 1}.</span>${q.text}
+        </div>
+        <div class="chart-total">${total} Antwort${total !== 1 ? "en" : ""} gesamt</div>
+        <div class="bars">${barsHTML}</div>`;
+
+      area.appendChild(block);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          block.classList.add("visible");
+          block.querySelectorAll(".bar-fill").forEach(bar => {
+            bar.style.width = bar.dataset.target + "%";
+          });
+        });
+      });
+    });
+  }
+</script>
+
 </body>
 </html>
