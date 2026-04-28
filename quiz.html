@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Umfrage</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #161616;
+      --border:   #2a2a2a;
+      --accent:   #e8ff47;
+      --accent2:  #ff6b35;
+      --text:     #f0f0f0;
+      --muted:    #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 2.5rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 6vw, 3rem);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .page-title span { color: var(--accent); }
+
+    .page-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.6rem;
+    }
+
+    /* ── PROGRESS ── */
+    .progress-bar {
+      width: 100%;
+      max-width: 560px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ── FORM ── */
+    .quiz-form {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* ── QUESTION BLOCK ── */
+    .question-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.8rem;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 0.4s forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .q-number {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+
+    .q-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.4;
+      margin-bottom: 1.4rem;
+    }
+
+    /* ── OPTIONS ── */
+    .options { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      font-size: 0.82rem;
+      user-select: none;
+      position: relative;
+    }
+
+    .option-label:hover {
+      border-color: var(--accent);
+      background: rgba(232, 255, 71, 0.04);
+    }
+
+    .option-label input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0; height: 0;
+    }
+
+    .option-label input[type="radio"]:checked ~ .option-text {
+      color: var(--accent);
+    }
+
+    /* custom radio dot */
+    .radio-dot {
+      width: 16px; height: 16px;
+      border: 1.5px solid var(--muted);
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s;
+    }
+
+    .option-label:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(232, 255, 71, 0.06);
+    }
+
+    .option-label:has(input:checked) .radio-dot {
+      border-color: var(--accent);
+    }
+
+    .option-label:has(input:checked) .radio-dot::after {
+      content: "";
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    /* ── SUBMIT ── */
+    .submit-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.8rem;
+    }
+
+    .btn-submit {
+      background: var(--accent);
+      color: #0d0d0d;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 1rem 2.5rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .btn-submit:hover { background: #d4ea30; transform: translateY(-1px); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .form-hint {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* ── STATUS ── */
+    .submit-status {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: right;
+      min-height: 1.2em;
+    }
+    .submit-status.error { color: var(--accent2); }
+
+    /* ── SUCCESS SCREEN ── */
+    .success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 1.5rem;
+      padding: 4rem 2rem;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .success-icon {
+      font-size: 3.5rem;
+      animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .success-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+    }
+    .success-title span { color: var(--accent); }
+
+    .success-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 320px;
+    }
+
+    .btn-back {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.8rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--muted);
+      text-decoration: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ── QUIZ ── -->
+<div id="quiz-wrapper" style="width:100%;max-width:560px;display:flex;flex-direction:column;align-items:stretch;">
+
+  <div class="page-header">
+    <a class="back-link" href="index.html">← Zurück zur Hauptseite</a>
+    <div class="page-title">Kurze<br><span>Umfrage</span></div>
+    <div class="page-sub">4 Fragen · 1 Minute</div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+  <form class="quiz-form" id="quizForm" onsubmit="return false;">
+
+    <!-- Fragen werden per JS eingefügt -->
+
+    <div class="submit-area">
+      <div class="submit-status" id="submitStatus"></div>
+      <div class="form-hint">Alle Felder müssen ausgefüllt sein.</div>
+      <button class="btn-submit" id="submitBtn" onclick="submitQuiz()">Absenden ✓</button>
+    </div>
+  </form>
+</div>
+
+<!-- ── ERFOLG ── -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✓</div>
+  <div class="success-title">Danke<span>!</span></div>
+  <div class="success-sub">Deine Antworten wurden gespeichert. Du kannst das Fenster jetzt schließen oder zur Hauptseite zurückkehren.</div>
+  <a class="btn-back" href="index.html">← Zur Hauptseite</a>
+</div>
+
+<script>
+  /* ════════════════════════════════════════════
+     ⚙️  KONFIGURATION — hier anpassen!
+  ════════════════════════════════════════════ */
+  const CONFIG = {
+    SUPABASE_URL: "https://DEIN-PROJEKT.supabase.co",
+    SUPABASE_ANON_KEY: "DEIN-ANON-KEY",
+    TABLE: "umfrage_antworten",
+
+    QUESTIONS: [
+      {
+        id: "q1",
+        text: "Wie bist du auf uns aufmerksam geworden?",
+        options: ["Social Media", "Freunde / Familie", "Werbung", "Sonstiges"]
+      },
+      {
+        id: "q2",
+        text: "Wie oft nutzt du unser Angebot?",
+        options: ["Täglich", "Wöchentlich", "Monatlich", "Seltener"]
+      },
+      {
+        id: "q3",
+        text: "Wie zufrieden bist du insgesamt?",
+        options: ["Sehr zufrieden", "Zufrieden", "Neutral", "Unzufrieden"]
+      },
+      {
+        id: "q4",
+        text: "Würdest du uns weiterempfehlen?",
+        options: ["Auf jeden Fall", "Wahrscheinlich", "Eher nicht", "Nein"]
+      }
+    ]
+  };
+
+  /* ════ Fragen rendern ════ */
+  const form = document.getElementById("quizForm");
+  const submitArea = form.querySelector(".submit-area");
+
+  CONFIG.QUESTIONS.forEach((q, i) => {
+    const block = document.createElement("div");
+    block.className = "question-block";
+    block.style.animationDelay = `${i * 0.08}s`;
+
+    let optionsHTML = "";
+    q.options.forEach(opt => {
+      const id = `${q.id}_${opt.replace(/\s+/g, "_")}`;
+      optionsHTML += `
+        <label class="option-label" for="${id}">
+          <input type="radio" name="${q.id}" id="${id}" value="${opt}" onchange="updateProgress()">
+          <div class="radio-dot"></div>
+          <span class="option-text">${opt}</span>
+        </label>`;
+    });
+
+    block.innerHTML = `
+      <div class="q-number">Frage ${i + 1} / ${CONFIG.QUESTIONS.length}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="options">${optionsHTML}</div>`;
+
+    form.insertBefore(block, submitArea);
+  });
+
+  /* ════ Fortschrittsbalken ════ */
+  function updateProgress() {
+    const answered = CONFIG.QUESTIONS.filter(q =>
+      form.querySelector(`input[name="${q.id}"]:checked`)
+    ).length;
+    const pct = Math.round((answered / CONFIG.QUESTIONS.length) * 100);
+    document.getElementById("progress").style.width = pct + "%";
+  }
+
+  /* ════ Absenden ════ */
+  async function submitQuiz() {
+    const status = document.getElementById("submitStatus");
+    const btn = document.getElementById("submitBtn");
+    status.className = "submit-status";
+
+    // Validierung
+    const answers = {};
+    let allAnswered = true;
+    CONFIG.QUESTIONS.forEach(q => {
+      const checked = form.querySelector(`input[name="${q.id}"]:checked`);
+      if (checked) {
+        answers[q.id] = checked.value;
+      } else {
+        allAnswered = false;
+      }
+    });
+
+    if (!allAnswered) {
+      status.className = "submit-status error";
+      status.textContent = "✗ Bitte alle Fragen beantworten.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sende…";
+    status.textContent = "";
+
+    try {
+      const res = await fetch(
+        `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": CONFIG.SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify(answers)
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Supabase Fehler ${res.status}: ${err}`);
+      }
+
+      // Erfolg
+      document.getElementById("quiz-wrapper").style.display = "none";
+      const s = document.getElementById("successScreen");
+      s.style.display = "flex";
+
+    } catch (err) {
+      status.className = "submit-status error";
+      status.textContent = `✗ ${err.message}`;
+      btn.disabled = false;
+      btn.textContent = "Absenden ✓";
+    }
+  }
+</script>
+
+</body>
+</html>
