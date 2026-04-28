@@ -292,7 +292,7 @@
   <section class="results-panel">
     <div class="panel-header">
       <div class="panel-title">Ergebnisse</div>
-      <button class="btn-load" id="loadBtn" onclick="loadResults()">
+      <button class="btn-load" id="loadBtn">
         <span id="btn-icon">↓</span>
         <span id="btn-text">Ergebnisse laden</span>
       </button>
@@ -310,19 +310,17 @@
 
 </div>
 
-<script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
   /* ════════════════════════════════════════════
      ⚙️  KONFIGURATION — hier anpassen!
   ════════════════════════════════════════════ */
   const CONFIG = {
-    // URL deiner Quiz-Unterseite (GitHub Pages URL)
     QUIZ_URL: "https://philemonfoth-netizen.github.io/hashes/quiz.html",
-
-    // Supabase
     SUPABASE_URL: "https://kqvkhfbstrurtalngzzj.supabase.co",
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxdmtoZmJzdHJ1cnRhbG5nenpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTcxNDcsImV4cCI6MjA5MjYzMzE0N30.5KDQlxy1WmcEizMQjieNyWzau7EuU_q4NqracF4A5Ws",
 
-    // Tabellenname in Supabase
     TABLE: "umfrage_antworten",
 
     // Fragen & Antwortoptionen (muss mit quiz.html übereinstimmen!)
@@ -349,6 +347,8 @@
       }
     ]
   };
+
+  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
   /* ════ QR Code generieren ════ */
   const qrEl = document.getElementById("qrcode");
@@ -379,18 +379,11 @@
     status.textContent = "";
 
     try {
-      const res = await fetch(
-        `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*`,
-        {
-          headers: {
-            "apikey": CONFIG.SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
-          }
-        }
-      );
+      const { data: rows, error } = await supabase
+        .from(CONFIG.TABLE)
+        .select("*");
 
-      if (!res.ok) throw new Error(`Serverfehler: ${res.status}`);
-      const rows = await res.json();
+      if (error) throw new Error(error.message);
 
       status.className = "status success";
       status.textContent = `✓ ${rows.length} Antwort${rows.length !== 1 ? "en" : ""} geladen`;
@@ -405,6 +398,9 @@
       text.textContent = "Aktualisieren";
     }
   }
+
+  // Button verknüpfen (wegen type="module" kein onclick-Attribut möglich)
+  document.getElementById("loadBtn").addEventListener("click", loadResults);
 
   /* ════ Diagramme rendern ════ */
   function renderCharts(rows) {
