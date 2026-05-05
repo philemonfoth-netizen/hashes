@@ -152,6 +152,21 @@
     .btn-load:active { transform: translateY(0); }
     .btn-load:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+    .btn-delete {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      padding: 0.7rem 1rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-delete:hover { border-color: var(--accent2); color: var(--accent2); }
+    .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .spinner {
       width: 14px; height: 14px;
       border: 2px solid #0d0d0d;
@@ -292,10 +307,13 @@
   <section class="results-panel">
     <div class="panel-header">
       <div class="panel-title">Ergebnisse</div>
-      <button class="btn-load" id="loadBtn">
-        <span id="btn-icon">↓</span>
-        <span id="btn-text">Ergebnisse laden</span>
-      </button>
+      <div style="display:flex;gap:0.7rem;align-items:center;">
+        <button class="btn-delete" id="deleteBtn">🗑 Alle löschen</button>
+        <button class="btn-load" id="loadBtn">
+          <span id="btn-icon">↓</span>
+          <span id="btn-text">Ergebnisse laden</span>
+        </button>
+      </div>
     </div>
 
     <div class="status" id="status"></div>
@@ -401,6 +419,41 @@
 
   // Button verknüpfen (wegen type="module" kein onclick-Attribut möglich)
   document.getElementById("loadBtn").addEventListener("click", loadResults);
+
+  /* ════ Alle Antworten löschen ════ */
+  async function deleteResults() {
+    if (!confirm("Wirklich ALLE Umfrage-Antworten unwiderruflich löschen?")) return;
+
+    const btn = document.getElementById("deleteBtn");
+    const status = document.getElementById("status");
+    btn.disabled = true;
+    btn.textContent = "Lösche…";
+
+    try {
+      const { error } = await supabase
+        .from(CONFIG.TABLE)
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000"); // löscht alle Zeilen
+
+      if (error) throw new Error(error.message);
+
+      status.className = "status success";
+      status.textContent = "✓ Alle Antworten gelöscht.";
+      document.getElementById("charts-area").innerHTML = `
+        <div class="empty-state">
+          <span class="arrow">↑</span>
+          Klicke auf „Ergebnisse laden" um die aktuellen Umfragedaten anzuzeigen.
+        </div>`;
+    } catch (err) {
+      status.className = "status error";
+      status.textContent = `✗ Fehler: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "🗑 Alle löschen";
+    }
+  }
+
+  document.getElementById("deleteBtn").addEventListener("click", deleteResults);
 
   /* ════ Diagramme rendern ════ */
   function renderCharts(rows) {
